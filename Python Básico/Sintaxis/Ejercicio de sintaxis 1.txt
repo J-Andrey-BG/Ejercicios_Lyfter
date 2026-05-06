@@ -1,0 +1,33 @@
+print("Hola " + "Mundo")
+print([1, 2, 3, 4] + [5, 6, 7, 8])
+print(4.5 + 6)
+
+R/
+Hola Mundo
+[1, 2, 3, 4, 5, 6, 7, 8]
+10.5
+
+cuando se suman varibles del mismo tipo la suma funciona bien incluso cuando se suma int con float
+pero al intentar sumar una variable str con una variable de otro tipo genera un TypeError.
+
+Ej: 
+print("Hola " + [1, 2, 3, 4])
+
+TypeError: can only concatenate str (not "list") to str
+
+Si se intentan sumar valores true o false el resultado es una suma numerica del valor binario 
+true = 1
+false = 0
+Ej:
+variable_true_1 = True
+variable_true_2 = True
+variable_false_1 = False
+variable_false_2 = False
+print(variable_true_1 + variable_true_2)
+print(variable_false_1 + variable_false_2)
+print(variable_false_1 + variable_true_1)
+
+R/
+2
+0
+1

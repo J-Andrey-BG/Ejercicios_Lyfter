@@ -1,0 +1,44 @@
+Algoritmo para ver un video en YouTube
+
+1. Seleccionar un dispositivo;
+2. Encender el dispositivo;
+3. Si tiene contraseña:
+   a. Colocar la contraseña;
+4. Buscar la applicación YouTube;
+5. Si es un dispositivo movil:
+   a. Tocar el icono de YouTube con el dedo;
+6. Si es una PC:
+   a. Dar doble click sobre el icono de YouTube;
+7. Si sabe el nombre del video:
+   a. Escribir el nombre del video en el buscador;
+   b. Presionar la tecla Enter;
+   c. Seleccionar el video que quiero ver;
+8. Si no sabe cual video ver:
+   a. Seleccionar la opción "Principal" para ver los videos sugeridos;
+   b. Mientras no encuentre un video que le llame la atención:
+      I. Siga avanzando por los videos sugeridos;
+   c. Sino, seleccione el video que le llamó la atención;
+9. Disfrute el video.
+
+
+Algoritmo de rutina diaria.
+
+1. Mientras no suene el despertador:
+   a. Continue durmiendo;
+2. Sino, debe levantarse;
+3. Proceda a tomar un baño;
+4. Mientras no esté limpio:
+   a. Continue restregando el cuerpo;
+5. Sino, salga del baño;
+6. Vistase para ir a trabajar;
+7. Si ya está listo:
+   a. Puede salir a trabajar;
+8. Sino, continue alistandose.
+9. Si ya terminó su trabajo:
+   a. Devuelvase a su casa;
+10. Sino, continue trabajando.
+11. Cumpla con todas sus demas responsabilidades;
+12. Mientras tenga responsabilidades pendientes:
+    a. No puede descansar
+    b. Continue con sus responsabilidades.
+13. Sino, puede descansar.

@@ -1,0 +1,8 @@
+print("Hola")
+print("este")
+print("es")
+print("mi")
+print("primer")
+print("ejercicio")
+print("en")
+print("python")

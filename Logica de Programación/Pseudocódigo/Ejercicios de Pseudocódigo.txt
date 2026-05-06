@@ -1,0 +1,70 @@
+Ejercicios de Pseudocódigo
+
+1. Precio de producto
+
+Inicio
+1.Definir precio_producto
+2.Definir descuento
+3.Definir precio_final
+4.Mostrar "Ingrese el precio del producto"
+5.Pedir precio_producto
+6.Si (precio_producto >= 100) Entonces:
+    a.descuento = (precio_producto * 0.1)
+  sino
+    a.descuento = (precio_producto * 0.02)
+  FinSi
+7.precio_final = (precio_producto - descuento)
+8.Mostrar "El precio final del product es:"
+9.Mostrar precio_final
+Fin
+
+
+2. Tiempo en segundos
+
+Inicio
+1.Definir tiempo_en_segundos
+2.Definir diez_minutos_en_segundos
+3.Definir segundos_faltantes
+4.diez_minutos_en_segundos = 600
+5.Mostrar "Indique una cantidad de tiempo en segundos"
+6.Pedir tiempo_en_segundos
+7.Si (tiempo_en_segundos > diez_minutos_en_segundos) entonces:
+    a.Mostrar "Mayor"
+  Sino
+    a.Si (tiempo_en_segundos = diez_minutos_en_segundos) entonces:
+      i .Mostrar "Igual"
+    Sino
+      i .segundos_faltantes = (diez_minutos_en_segundos - tiempo_en_segundos)
+      ii.Mostrar segundos_faltantes
+    FinSi
+  FinSi
+Fin
+
+
+3.Ejercicio de suma
+
+Inicio
+1.Definir numero_usuario
+2.Definir contador
+3.Definir resultado
+4.contador = 1
+5.resultado = 0
+6.Mostrar "Ingrese un numero"
+7.Pedir numero_usuario
+8.Si (numero_usuario == 1) Entonces:
+    a.resultado = (resultado + 1)
+    b.Mostrar "El resultado es:"
+    c.Mostrar resultado
+  Sino
+    a.Mientras que (contador <= numero_usuario ) Repetir:
+      i. resultado = (resultado + contador)
+      ii.contador = (Contador + 1)
+     FinMientras
+    b.Mostrar "El resultado de la suma de cada numero del 1 hasta ese número ingresado es:"
+    c.Mostrar resultado
+  FinSi
+Fin
+
+
+
+
