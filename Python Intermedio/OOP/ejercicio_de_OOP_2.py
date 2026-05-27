@@ -16,9 +16,8 @@ class Bus:
 
     def add_passenger(self, passenger):
         if len(self.passengers_list) < self.max_passengers:
-            new_passenger = passenger
 
-            self.passengers_list.append(new_passenger)
+            self.passengers_list.append(passenger)
             print("A passenger boarded the bus")
         else:
             print("The bus is full. There is no space for more passengers")
