@@ -14,9 +14,9 @@ class Bus:
         self.max_passengers = max_passengers
         self.passengers_list = []
 
-    def add_passenger(self):
+    def add_passenger(self, passenger):
         if len(self.passengers_list) < self.max_passengers:
-            new_passenger = Person(f"Passenger: {len(self.passengers_list) + 1}",random.randint(10, 80))
+            new_passenger = passenger
 
             self.passengers_list.append(new_passenger)
             print("A passenger boarded the bus")
@@ -57,7 +57,8 @@ Enter an option: """)
         match option:
 
             case 1:
-                new_bus.add_passenger()
+                new_passenger = Person(f"Passenger: {len(new_bus.passengers_list) + 1}",random.randint(10, 80))
+                new_bus.add_passenger(new_passenger)
 
             case 2:
                 new_bus.remove_passenger()
