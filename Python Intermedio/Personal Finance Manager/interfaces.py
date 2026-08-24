@@ -1,30 +1,61 @@
 import FreeSimpleGUI as sg
 
+from exporter import export_movements_to_csv
 from persistence import (
     save_categories,
     save_movements,
 )
+from validations import get_today_string
 
 
-def get_table_values(manager):
+def get_display_amount(movement):
+    if movement.movement_type == "Expense":
+        return -movement.amount
+
+    return movement.amount
+
+
+def get_table_values(manager, movements=None):
+    if movements is None:
+        movements = manager.movements
+
     table_values = []
 
-    for movement in manager.movements:
-        amount = movement.amount
-
-        if movement.movement_type == "Expense":
-            amount = -amount
+    for movement in movements:
+        amount = get_display_amount(movement)
 
         table_values.append(
             [
-                movement.movement_type,
+                movement.date,
                 movement.title,
                 f"{amount:.2f}",
                 movement.category,
+                movement.movement_type,
             ]
         )
 
     return table_values
+
+
+def get_table_row_colors(manager, movements=None):
+    if movements is None:
+        movements = manager.movements
+
+    row_colors = []
+
+    for index, movement in enumerate(movements):
+        category_color = manager.get_category_color(movement.category)
+
+        if category_color and category_color != "#FFFFFF":
+            row_colors.append(
+                (
+                    index,
+                    "black",
+                    category_color,
+                )
+            )
+
+    return row_colors
 
 
 def save_all_data(manager):
@@ -32,12 +63,57 @@ def save_all_data(manager):
     save_movements(manager.movements)
 
 
+def update_table(window, manager, movements=None):
+    table_values = get_table_values(
+        manager,
+        movements,
+    )
+
+    row_colors = get_table_row_colors(
+        manager,
+        movements,
+    )
+
+    window["-TABLE-"].update(
+        values=table_values,
+        row_colors=row_colors,
+    )
+
+
+def update_totals(window, manager):
+    window["-TOTAL-INCOME-"].update(
+        f"Total Income: ₡{manager.get_total_income():.2f}"
+    )
+
+    window["-TOTAL-EXPENSES-"].update(
+        f"Total Expenses: ₡{manager.get_total_expenses():.2f}"
+    )
+
+    window["-BALANCE-"].update(
+        f"Balance: ₡{manager.get_balance():.2f}"
+    )
+
+
+def refresh_main_window(window, manager, movements=None):
+    update_table(
+        window,
+        manager,
+        movements,
+    )
+
+    update_totals(
+        window,
+        manager,
+    )
+
+
 def create_main_window(manager):
     headings = [
-        "Type",
+        "Date",
         "Title",
         "Amount",
         "Category",
+        "Type",
     ]
 
     layout = [
@@ -51,6 +127,23 @@ def create_main_window(manager):
             sg.Button("Add Category"),
             sg.Button("Add Expense"),
             sg.Button("Add Income"),
+            sg.Button("Export to CSV"),
+        ],
+        [
+            sg.Text("Start Date:"),
+            sg.Input(
+                key="-START-DATE-",
+                size=(12, 1),
+                tooltip="dd/mm/yyyy",
+            ),
+            sg.Text("End Date:"),
+            sg.Input(
+                key="-END-DATE-",
+                size=(12, 1),
+                tooltip="dd/mm/yyyy",
+            ),
+            sg.Button("Filter"),
+            sg.Button("Clear Filter"),
         ],
         [
             sg.Table(
@@ -60,7 +153,25 @@ def create_main_window(manager):
                 auto_size_columns=True,
                 justification="left",
                 num_rows=15,
+                row_colors=get_table_row_colors(manager),
             )
+        ],
+        [
+            sg.Text(
+                f"Total Income: ₡{manager.get_total_income():.2f}",
+                key="-TOTAL-INCOME-",
+                size=(25, 1),
+            ),
+            sg.Text(
+                f"Total Expenses: ₡{manager.get_total_expenses():.2f}",
+                key="-TOTAL-EXPENSES-",
+                size=(25, 1),
+            ),
+            sg.Text(
+                f"Balance: ₡{manager.get_balance():.2f}",
+                key="-BALANCE-",
+                size=(25, 1),
+            ),
         ],
         [
             sg.Button("Exit")
@@ -78,6 +189,18 @@ def open_category_window(manager):
         [
             sg.Text("Category name:"),
             sg.Input(key="-CATEGORY-NAME-"),
+        ],
+        [
+            sg.Text("Color:"),
+            sg.Input(
+                "#FFFFFF",
+                key="-COLOR-",
+                size=(10, 1),
+            ),
+            sg.ColorChooserButton(
+                "Choose Color",
+                target="-COLOR-",
+            ),
         ],
         [
             sg.Button("Save"),
@@ -104,7 +227,8 @@ def open_category_window(manager):
         if event == "Save":
             try:
                 manager.add_category(
-                    values["-CATEGORY-NAME-"]
+                    values["-CATEGORY-NAME-"],
+                    values["-COLOR-"],
                 )
 
                 window.close()
@@ -136,6 +260,15 @@ def open_movement_window(manager, movement_type):
             ),
         ],
         [
+            sg.Text("Date:"),
+            sg.Input(
+                get_today_string(),
+                key="-DATE-",
+                size=(12, 1),
+                tooltip="dd/mm/yyyy",
+            ),
+        ],
+        [
             sg.Button("Save"),
             sg.Button("Cancel"),
         ],
@@ -164,6 +297,7 @@ def open_movement_window(manager, movement_type):
                     values["-AMOUNT-"],
                     values["-CATEGORY-"],
                     movement_type,
+                    values["-DATE-"],
                 )
 
                 window.close()
@@ -174,8 +308,41 @@ def open_movement_window(manager, movement_type):
                 sg.popup_error(str(error))
 
 
+def export_data(manager):
+    file_path = sg.popup_get_file(
+        "Choose where to save the CSV file",
+        save_as=True,
+        no_window=True,
+        default_extension=".csv",
+        file_types=(
+            ("CSV Files", "*.csv"),
+        ),
+    )
+
+    if not file_path:
+        return
+
+    try:
+        export_movements_to_csv(
+            manager,
+            file_path,
+        )
+
+        sg.popup(
+            "Data exported successfully.",
+            title="Export Complete",
+        )
+
+    except OSError as error:
+        sg.popup_error(
+            f"Could not export data: {error}"
+        )
+
+
 def run_app(manager):
     window = create_main_window(manager)
+
+    current_filtered_movements = None
 
     while True:
         event, values = window.read()
@@ -211,10 +378,16 @@ def run_app(manager):
             )
 
             if movement_added:
+                current_filtered_movements = None
+
                 save_all_data(manager)
 
-                window["-TABLE-"].update(
-                    values=get_table_values(manager)
+                window["-START-DATE-"].update("")
+                window["-END-DATE-"].update("")
+
+                refresh_main_window(
+                    window,
+                    manager,
                 )
 
         elif event == "Add Income":
@@ -232,10 +405,46 @@ def run_app(manager):
             )
 
             if movement_added:
+                current_filtered_movements = None
+
                 save_all_data(manager)
 
-                window["-TABLE-"].update(
-                    values=get_table_values(manager)
+                window["-START-DATE-"].update("")
+                window["-END-DATE-"].update("")
+
+                refresh_main_window(
+                    window,
+                    manager,
                 )
+
+        elif event == "Filter":
+            try:
+                current_filtered_movements = manager.filter_movements_by_date_range(
+                    values["-START-DATE-"],
+                    values["-END-DATE-"],
+                )
+
+                refresh_main_window(
+                    window,
+                    manager,
+                    current_filtered_movements,
+                )
+
+            except ValueError as error:
+                sg.popup_error(str(error))
+
+        elif event == "Clear Filter":
+            current_filtered_movements = None
+
+            window["-START-DATE-"].update("")
+            window["-END-DATE-"].update("")
+
+            refresh_main_window(
+                window,
+                manager,
+            )
+
+        elif event == "Export to CSV":
+            export_data(manager)
 
     window.close()
