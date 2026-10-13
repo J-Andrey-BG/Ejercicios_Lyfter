@@ -186,13 +186,15 @@ Ambas filas tienen el **mismo `OrderID`**. Es un solo pedido y, por lo tanto, pu
 | 5J6RM4H79EL | Honda | CR-V | 2014 | Blue | 103 | Claire | 555-123-4567 | DEF Insurance | Collision |
 | 1G1RA6EH1FU | Chevrolet | Volt | 2015 | Red | 104 | Dave | 111-222-3333 | GHI Insurance | Basic Legal |
 
-**¿Cuál es el problema?** El mismo automóvil aparece varias veces cuando tiene más de un propietario. Por ejemplo, el VIN `1HGCM82633A` está asociado tanto con Alice como con Bob. Entonces, **usar solamente el VIN como clave primaria no funcionaría** para identificar todas las filas de esta tabla.
+**¿Qué problemas aparecen?** El mismo VIN se repite cuando hay más de un propietario, también se repiten las características del vehículo y los datos de cada persona. Además, los seguros están mezclados con los propietarios, aunque se desea que las pólizas se relacionen con **el vehículo**, no con una persona.
 
-**¿Y qué pasa con los seguros?** Aunque Alice y Bob están asociados con el mismo carro, aparecen con seguros diferentes. Por eso se considera que el seguro corresponde a la relación entre el automóvil y cada propietario. No se sabe si ambos son propietarios al mismo tiempo o en momentos diferentes, así que no se asume ninguna de esas dos situaciones.
+Hay un caso que merece atención: el VIN `1HGCM82633A` aparece con **dos propietarios y dos coberturas distintas**. Los datos no indican fechas ni cuál es el seguro vigente. En esta solución se registran las dos coberturas como asociaciones del automóvil. Así no se descarta ninguna, pero tampoco se inventa una fecha o se afirma que una reemplazó a la otra.
+
+También se considera que `Year` es el **año de la versión del modelo**. Por ejemplo, el Accord 2003 se trata como una versión del modelo y no como una característica que deba escribirse nuevamente para cada VIN. En un sistema real también podría distinguirse entre año del modelo y año de fabricación, pero el ejercicio solo incluye un campo `Year`.
 
 ### 1. Primera Forma Normal (1FN)
 
-Para cumplir la **1FN**, se comprueba que las columnas tengan valores individuales y que cada fila cuente con una clave única. Los valores ya son atómicos. En este caso se utiliza la clave compuesta (`VIN`, `OwnerID`), bajo la suposición de que cada combinación de carro y propietario aparece una sola vez.
+En la **1FN**, cada celda debe contener un solo valor y las filas tienen que poder identificarse de forma única. Los datos originales ya son atómicos. Para esta primera etapa se utiliza la combinación (`VIN`, `OwnerID`) como clave primaria, porque identifica las cuatro filas proporcionadas.
 
 **Cars_1FN** — **PK:** (`VIN`, `OwnerID`)
 
@@ -203,17 +205,19 @@ Para cumplir la **1FN**, se comprueba que las columnas tengan valores individual
 | 5J6RM4H79EL | 103 | Honda | CR-V | 2014 | Blue | Claire | 555-123-4567 | DEF Insurance | Collision |
 | 1G1RA6EH1FU | 104 | Chevrolet | Volt | 2015 | Red | Dave | 111-222-3333 | GHI Insurance | Basic Legal |
 
-**Ahora revisemos de qué depende cada dato:**
+**¿Qué dependencias se pueden identificar?**
 
-- `VIN → Make, Model, Year, Color`: características del vehículo.
-- `OwnerID → OwnerName, OwnerPhone`: información del propietario.
-- `(VIN, OwnerID) → InsuranceCompany, InsurancePolicy`: datos del seguro de esa asociación vehículo–propietario.
+- `VIN → Make, Model, Year, Color`: las características del automóvil se identifican por su VIN en la tabla original.
+- `OwnerID → OwnerName, OwnerPhone`: los datos personales dependen del identificador del propietario.
+- Los nombres de aseguradoras y coberturas están incluidos en filas de propietarios, pero **no se asumirá que dependen del propietario**. La asociación correcta para este ejercicio es la del seguro con el vehículo.
 
-**¿Qué falta?** Aunque la tabla ya cumple 1FN, todavía presenta dependencias parciales. Las características del carro dependen de `VIN`, mientras que el nombre y teléfono del propietario dependen de `OwnerID`. No se necesitan ambas partes de la clave para conocer esos datos.
+La clave está formada por dos columnas y varios atributos dependen solamente de una de ellas. Por eso todavía no se cumple la 2FN.
 
 ### 2. Segunda Forma Normal (2FN)
 
-En **2FN** se separan esos datos. Se crea una tabla para los automóviles y otra para los propietarios. Como un carro puede tener varios propietarios y un propietario podría tener varios carros, se necesita una tercera tabla que los relacione. Esta es una relación **muchos a muchos (N:N)**.
+La **2FN** busca eliminar las dependencias parciales. Por eso se separan los automóviles y los propietarios. Después se crea una tabla intermedia para relacionarlos, ya que un automóvil puede tener varios propietarios y una persona puede tener varios automóviles.
+
+Los seguros también se separan desde esta etapa. En lugar de vincularlos a `CarOwners`, se guardan en una tabla de seguros asociados al **VIN**. Se agrega un identificador para distinguir cada registro de seguro, porque un mismo vehículo puede tener más de uno.
 
 **Cars_2FN** — **PK:** `VIN`
 
@@ -234,51 +238,74 @@ En **2FN** se separan esos datos. Se crea una tabla para los automóviles y otra
 
 **CarOwners_2FN** — **PK:** (`VIN`, `OwnerID`); **FK:** `VIN → Cars_2FN`, `OwnerID → Owners_2FN`
 
-| VIN **PK, FK** | OwnerID **PK, FK** | InsuranceCompany | InsurancePolicy |
-|---|---|---|---|
-| 1HGCM82633A | 101 | ABC Insurance | Fire & Theft |
-| 1HGCM82633A | 102 | XYZ Insurance | Full Cover |
-| 5J6RM4H79EL | 103 | DEF Insurance | Collision |
-| 1G1RA6EH1FU | 104 | GHI Insurance | Basic Legal |
+| VIN **PK, FK** | OwnerID **PK, FK** |
+|---|---|
+| 1HGCM82633A | 101 |
+| 1HGCM82633A | 102 |
+| 5J6RM4H79EL | 103 |
+| 1G1RA6EH1FU | 104 |
 
-**¿Qué mejora con esto?** Ya no se repiten las características del vehículo ni los datos personales del propietario cada vez que aparece una relación. En `CarOwners_2FN` se mantienen la compañía y la cobertura del seguro, porque en este ejercicio dependen de la combinación entre carro y propietario.
+**CarInsurances_2FN** — **PK:** `CarInsuranceID`; **FK:** `VIN → Cars_2FN`. `CarInsuranceID` es nuevo.
+
+| CarInsuranceID **PK** | VIN **FK** | InsuranceCompany | InsurancePolicy |
+|---|---|---|---|
+| 1 | 1HGCM82633A | ABC Insurance | Fire & Theft |
+| 2 | 1HGCM82633A | XYZ Insurance | Full Cover |
+| 3 | 5J6RM4H79EL | DEF Insurance | Collision |
+| 4 | 1G1RA6EH1FU | GHI Insurance | Basic Legal |
+
+**¿Qué mejoró?** Las características de los vehículos aparecen una sola vez por VIN y los datos personales aparecen una sola vez por propietario. `CarOwners_2FN` ya no almacena seguros: únicamente representa quién está asociado con cada automóvil. Además, `CarInsurances_2FN` permite que un VIN tenga varios registros de cobertura sin asignárselos a una persona específica.
+
+Todavía se escriben las marcas, los modelos y los nombres de los seguros directamente como texto. En la 3FN se separa esa información para evitar repeticiones y facilitar las actualizaciones.
 
 ### 3. Tercera Forma Normal (3FN)
 
-Para llegar a **3FN**, se revisa si todavía hay información que se pueda separar. Cada automóvil tiene un modelo y cada modelo pertenece a un fabricante. En lugar de repetir esos nombres en todos los carros, se pueden guardar fabricantes y modelos en sus propias tablas.
+En la **3FN**, la idea es que los atributos descriptivos estén en la tabla de la entidad a la que realmente pertenecen. Si se puede obtener un dato a través de otro atributo que no es la clave, es necesario revisar si conviene separarlo.
 
-**Estas son las dependencias que se utilizan:**
+En este caso se realizan tres ajustes principales:
 
-- `VIN → ModelID, Year, Color`.
-- `ModelID → MakeID, ModelName`.
-- `MakeID → MakeName`.
+1. **Separar fabricantes, modelos y vehículos.** El nombre del fabricante pertenece a `Makes`; el nombre y el año de la versión del modelo pertenecen a `Models`. `Cars` conserva el VIN, una referencia al modelo y el color individual del vehículo.
+2. **Separar aseguradoras y pólizas.** Las compañías se identifican mediante `InsuranceCompanyID`. Cada tipo de cobertura ofrecido por una compañía se registra una sola vez en `InsurancePolicies`, evitando repetir el texto completo por cada automóvil asegurado.
+3. **Asociar las pólizas directamente a los vehículos.** `CarOwners` solo relaciona personas y autos. La tabla `CarInsurances` relaciona cada VIN con las pólizas que aparecen en los datos.
 
-Vamos a considerar que cada modelo pertenece a un fabricante. Como dos marcas podrían usar nombres de modelo iguales, es mejor identificar cada modelo con su propio código.
+Para este ejercicio, `InsurancePolicy` se interpreta como el **nombre de un tipo de cobertura** (por ejemplo, `Full Cover`), no como un número de contrato individual. Se supone que una compañía puede ofrecer varios tipos de cobertura. Por eso no se utiliza la dependencia `InsuranceCompany → InsurancePolicy`: saber la compañía no necesariamente determina una única póliza.
 
-**Makes (Fabricantes)** — **PK:** `MakeID`; identificadores nuevos
+#### Tabla 1. Makes (Fabricantes)
+
+**PK:** `MakeID` (identificador nuevo)
 
 | MakeID **PK** | MakeName |
 |---|---|
 | 1 | Honda |
 | 2 | Chevrolet |
 
-**Models (Modelos)** — **PK:** `ModelID`; **FK:** `MakeID → Makes`; identificadores nuevos
+#### Tabla 2. Models (Modelos)
 
-| ModelID **PK** | MakeID **FK** | ModelName |
+**PK:** `ModelID`; **FK:** `MakeID → Makes`. Cada fila representa una versión identificada por fabricante, nombre y año.
+
+| ModelID **PK** | MakeID **FK** | ModelName | Year |
+|---|---|---|---:|
+| 1 | 1 | Accord | 2003 |
+| 2 | 1 | CR-V | 2014 |
+| 3 | 2 | Volt | 2015 |
+
+De esta manera, si existieran varios vehículos Honda Accord del año 2003, todos podrían apuntar al mismo `ModelID` sin repetir esos datos.
+
+#### Tabla 3. Cars (Automóviles)
+
+**PK:** `VIN`; **FK:** `ModelID → Models`
+
+| VIN **PK** | ModelID **FK** | Color |
 |---|---|---|
-| 1 | 1 | Accord |
-| 2 | 1 | CR-V |
-| 3 | 2 | Volt |
+| 1HGCM82633A | 1 | Silver |
+| 5J6RM4H79EL | 2 | Blue |
+| 1G1RA6EH1FU | 3 | Red |
 
-**Cars (Automóviles)** — **PK:** `VIN`; **FK:** `ModelID → Models`
+Ahora `Cars` contiene únicamente el identificador del vehículo, la referencia a su versión de modelo y un atributo propio del automóvil: su color.
 
-| VIN **PK** | ModelID **FK** | Year | Color |
-|---|---|---:|---|
-| 1HGCM82633A | 1 | 2003 | Silver |
-| 5J6RM4H79EL | 2 | 2014 | Blue |
-| 1G1RA6EH1FU | 3 | 2015 | Red |
+#### Tabla 4. Owners (Propietarios)
 
-**Owners (Propietarios)** — **PK:** `OwnerID`
+**PK:** `OwnerID`
 
 | OwnerID **PK** | OwnerName | OwnerPhone |
 |---|---|---|
@@ -287,29 +314,74 @@ Vamos a considerar que cada modelo pertenece a un fabricante. Como dos marcas po
 | 103 | Claire | 555-123-4567 |
 | 104 | Dave | 111-222-3333 |
 
-**CarOwners (Relación entre automóviles y propietarios)** — **PK:** (`VIN`, `OwnerID`); **FK:** `VIN → Cars`, `OwnerID → Owners`
+#### Tabla 5. CarOwners (Automóviles y propietarios)
 
-| VIN **PK, FK** | OwnerID **PK, FK** | InsuranceCompany | InsurancePolicy |
-|---|---|---|---|
-| 1HGCM82633A | 101 | ABC Insurance | Fire & Theft |
-| 1HGCM82633A | 102 | XYZ Insurance | Full Cover |
-| 5J6RM4H79EL | 103 | DEF Insurance | Collision |
-| 1G1RA6EH1FU | 104 | GHI Insurance | Basic Legal |
+**PK:** (`VIN`, `OwnerID`); **FK:** `VIN → Cars`, `OwnerID → Owners`
 
-**¿Por qué el resultado cumple 3FN?**
+| VIN **PK, FK** | OwnerID **PK, FK** |
+|---|---|
+| 1HGCM82633A | 101 |
+| 1HGCM82633A | 102 |
+| 5J6RM4H79EL | 103 |
+| 1G1RA6EH1FU | 104 |
 
-- `Makes` almacena cada fabricante una sola vez.
-- `Models` relaciona cada modelo con su fabricante sin repetir el nombre de este último.
-- `Cars` guarda el modelo mediante `ModelID` y solo los atributos que corresponden al vehículo individual.
-- `Owners` conserva los datos de cada propietario bajo su identificador.
-- `CarOwners` representa la relación **N:N** y mantiene los datos del seguro correspondientes a cada asociación.
-- Bajo los supuestos establecidos, se eliminan las dependencias parciales y transitivas de las tablas finales.
+La relación es **muchos a muchos (N:N)** y ya no hay información sobre seguros en esta tabla.
 
-**¿Por qué no se separan también los seguros?** Aquí `InsurancePolicy` muestra nombres de coberturas, no números únicos de póliza. Tampoco hay información suficiente para afirmar que cada compañía ofrece una sola cobertura o que cada cobertura pertenece a una única compañía. Por eso esos dos datos se mantienen en `CarOwners`. En un sistema más grande se podrían crear otras tablas, pero para este ejercicio no es necesario.
+#### Tabla 6. InsuranceCompanies (Aseguradoras)
 
-**Sobre los propietarios:** como la relación es N:N, la tabla `CarOwners` nos permite representar varios dueños por carro y varios carros por dueño. No agregamos fechas de propiedad porque no aparecen en los datos originales.
+**PK:** `InsuranceCompanyID` (identificador nuevo)
 
-**¿Se perdió información?** No. Al relacionar `CarOwners`, `Cars`, `Owners`, `Models` y `Makes`, se pueden recuperar las cuatro filas originales, incluyendo los dos propietarios del VIN `1HGCM82633A` y sus seguros.
+| InsuranceCompanyID **PK** | CompanyName |
+|---|---|
+| 1 | ABC Insurance |
+| 2 | XYZ Insurance |
+| 3 | DEF Insurance |
+| 4 | GHI Insurance |
+
+Si una misma compañía asegura 500 automóviles, su nombre sigue apareciendo solamente una vez en `InsuranceCompanies`.
+
+#### Tabla 7. InsurancePolicies (Tipos de póliza)
+
+**PK:** `PolicyID`; **FK:** `InsuranceCompanyID → InsuranceCompanies`. Cada registro representa una cobertura ofrecida por una compañía específica.
+
+| PolicyID **PK** | InsuranceCompanyID **FK** | PolicyName |
+|---|---|---|
+| 1 | 1 | Fire & Theft |
+| 2 | 2 | Full Cover |
+| 3 | 3 | Collision |
+| 4 | 4 | Basic Legal |
+
+Por ejemplo, la cobertura `Full Cover` de `XYZ Insurance` se registra una sola vez, aunque se utilice para muchos vehículos. Si otra compañía también ofrece una cobertura llamada `Full Cover`, puede tener otro `PolicyID`, porque son productos de aseguradoras diferentes.
+
+#### Tabla 8. CarInsurances (Seguros de vehículos)
+
+**PK:** (`VIN`, `PolicyID`); **FK:** `VIN → Cars`, `PolicyID → InsurancePolicies`
+
+| VIN **PK, FK** | PolicyID **PK, FK** |
+|---|---|
+| 1HGCM82633A | 1 |
+| 1HGCM82633A | 2 |
+| 5J6RM4H79EL | 3 |
+| 1G1RA6EH1FU | 4 |
+
+Esta tabla resuelve la relación **muchos a muchos (N:N)** entre vehículos y tipos de póliza. Un vehículo puede aparecer con varias coberturas y una misma cobertura puede estar asociada a muchos vehículos sin duplicar el nombre del seguro.
+
+### 4. Comprobación del resultado
+
+**¿Por qué estas tablas cumplen con la 3FN bajo el modelo elegido?**
+
+- `Makes` guarda el nombre de cada fabricante asociado a `MakeID`.
+- `Models` guarda la versión del modelo, su año y la referencia al fabricante. Esos atributos corresponden a `ModelID`.
+- `Cars` contiene datos determinados por el VIN, sin repetir los nombres del fabricante ni del modelo.
+- `Owners` conserva los atributos de cada propietario en una sola fila.
+- `CarOwners` contiene únicamente las claves que forman la relación entre propietarios y automóviles.
+- `InsuranceCompanies` registra cada compañía por separado, de modo que los cambios de nombre no requieren modificar cientos de vehículos.
+- `InsurancePolicies` identifica cada tipo de cobertura ofrecido por una aseguradora.
+- `CarInsurances` enlaza vehículos con pólizas mediante sus identificadores, sin repetir los textos de compañía y cobertura.
+
+**Un detalle sobre los datos originales:** inicialmente, la primera fila asocia a Alice con `ABC Insurance` y la segunda asocia a Bob con `XYZ Insurance`. En el diseño solicitado, esos seguros se relacionan **solo con el vehículo**. Por lo tanto, se conservan los propietarios y las dos coberturas, pero **ya no se puede reconstruir qué propietario estaba junto a qué seguro en cada fila original**. Esta pérdida de asociación es consecuencia de la nueva regla del negocio y no se debe ocultar. Para conservar ese historial haría falta información adicional, como fechas o registros históricos de contratación; no se inventa porque el enunciado no la proporciona.
+
+Tampoco se puede saber con los datos disponibles si las dos coberturas del mismo VIN estaban vigentes al mismo tiempo. Aquí se guardan las dos asociaciones, sin afirmar cuál está vigente.
 
 ---
 
@@ -318,6 +390,6 @@ Vamos a considerar que cada modelo pertenece a un fabricante. Como dos marcas po
 | Ejercicio | Tablas en 1FN | Tablas en 2FN | Tablas finales en 3FN |
 |---|---|---|---|
 | Orders | `Orders_1FN` | `Orders_2FN`, `Items_2FN`, `OrderItems_2FN` | `Customers`, `Addresses`, `Orders`, `Items`, `OrderItems` |
-| Cars | `Cars_1FN` | `Cars_2FN`, `Owners_2FN`, `CarOwners_2FN` | `Makes`, `Models`, `Cars`, `Owners`, `CarOwners` |
+| Cars | `Cars_1FN` | `Cars_2FN`, `Owners_2FN`, `CarOwners_2FN`, `CarInsurances_2FN` | `Makes`, `Models`, `Cars`, `Owners`, `CarOwners`, `InsuranceCompanies`, `InsurancePolicies`, `CarInsurances` |
 
-**Para terminar:** con estos cambios, ambas tablas llegan a 3FN según las reglas y suposiciones explicadas. Se muestran todas las tablas intermedias sin perder los datos originales. En `Orders` se permiten varias direcciones dentro de un solo pedido y un pago único; en `Cars` se conserva la relación entre carros, propietarios y sus respectivos seguros.
+**Para terminar:** con estos cambios, ambas tablas llegan a 3FN según las reglas y suposiciones explicadas, y se muestran las tablas intermedias. En `Orders` se permiten varias direcciones dentro de un solo pedido y un pago único. En `Cars`, los propietarios y las coberturas se relacionan por separado con cada vehículo. Los valores originales se conservan, aunque la asociación original entre una persona y un seguro concreto ya no puede reconstruirse sin datos adicionales.
