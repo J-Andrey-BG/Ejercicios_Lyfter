@@ -1,0 +1,20 @@
+Funcionalidad	Descripción	                                          Ejemplo
+
+ORDER BY	    Ordena los resultados de forma ascendente (ASC)       SELECT * FROM Books ORDER BY Name ASC;
+                o descendente (DESC).
+
+LIMIT	        Limita la cantidad de registros que devuelve   	      SELECT * FROM Books LIMIT 3;
+                una consulta.
+ 
+GROUP BY	    Agrupa registros que tienen valores en común.  	      SELECT Author, COUNT(*) FROM Books GROUP BY Author;
+                Generalmente se utiliza con funciones 
+                como COUNT, SUM y AVG.
+
+INNER JOIN      Une dos tablas y devuelve únicamente los 	          SELECT * FROM Books INNER JOIN Authors ON Books.Author = Authors.ID;
+                registros que tienen coincidencia en ambas. 
+
+LEFT JOIN	    Devuelve todos los registros de la tabla izquierda,   SELECT * FROM Books LEFT JOIN Authors ON Books.Author = Authors.ID;
+                aunque no tengan coincidencias en la derecha.
+
+RIGHT JOIN	    Devuelve todos los registros de la tabla derecha,     SELECT * FROM Books RIGHT JOIN Authors ON Books.Author = Authors.ID;
+                aunque no tengan coincidencias en la izquierda.
